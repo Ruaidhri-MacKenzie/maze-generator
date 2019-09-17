@@ -1,21 +1,17 @@
-const shuffle = array => {
-  let currentIndex = array.length;
-  let temp;
-  let randomIndex;
-  while (currentIndex !== 0) {
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-    temp = array[currentIndex];
-    array[currentIndex] = array[randomIndex];
-    array[randomIndex] = temp;
-  }
-  return array;
-};
-
 class Node {
 	constructor(x, y) {
 		this.x = x;
 		this.y = y;
+		this.checked = false;
+		this.wall = {
+			left: true,
+			right: true,
+			up: true,
+			down: true,
+		};
+	}
+
+	reset() {
 		this.checked = false;
 		this.wall = {
 			left: true,
@@ -31,6 +27,8 @@ class Maze {
 		this.columns = columns;
 		this.rows = rows;
 		this.size = columns * rows;
+		this.startX = startX;
+		this.startY = startY;
 		this.nodes = [];
 		this.path = [];
 
@@ -40,7 +38,7 @@ class Maze {
 			}
 		}
 
-		this.checkNextNode(this.nodes[startY * this.columns + startX]);
+		this.checkNextNode(this.nodes[startY * columns + startX]);
 	}
 
 	checkNextNode(node) {
@@ -106,6 +104,11 @@ class Maze {
 			// Check Next Node
 			return this.checkNextNode(nextNode);
 		}
+	}
+
+	reset() {
+		this.nodes.forEach(node => node.reset());
+		this.checkNextNode(this.nodes[this.startY * this.columns + this.startX]);
 	}
 }
 
