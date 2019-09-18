@@ -23,12 +23,14 @@ class Node {
 }
 
 class Maze {
-	constructor(columns, rows, startX = 0, startY = 0) {
+	constructor(columns, rows, startX = 0, startY = 0, endX = columns - 1, endY = rows - 1) {
 		this.columns = columns;
 		this.rows = rows;
 		this.size = columns * rows;
 		this.startX = startX;
 		this.startY = startY;
+		this.endX = endX;
+		this.endY = endY;
 		this.nodes = [];
 		this.path = [];
 
@@ -108,6 +110,15 @@ class Maze {
 
 	reset() {
 		this.nodes.forEach(node => node.reset());
+
+		do {
+			this.startX = Math.floor(Math.random() * this.columns);
+			this.startY = Math.floor(Math.random() * this.rows);
+			this.endX = Math.floor(Math.random() * this.columns);
+			this.endY = Math.floor(Math.random() * this.rows);
+		}
+		while (this.startX === this.endX && this.startY === this.endY)
+		
 		this.checkNextNode(this.nodes[this.startY * this.columns + this.startX]);
 	}
 }
@@ -124,15 +135,22 @@ canvas.setAttribute("width", width);
 canvas.setAttribute("height", height);
 
 const draw = () => {
-	ctx.clearRect(0, 0, width, height);
-	
-	ctx.fillStyle = '#fff';
 	ctx.strokeStyle = '#000';
+	
+	// Clear Canvas
+	ctx.clearRect(0, 0, width, height);
+
+	// Draw Nodes
 	maze.nodes.forEach(node => {
 		const { x, y, wall } = node;
 
+		// Draw Node
+		if (x === maze.startX && y === maze.startY) ctx.fillStyle = '#00f';
+		else if (x === maze.endX && y === maze.endY) ctx.fillStyle = '#f00';
+		else ctx.fillStyle = '#fff';
 		ctx.fillRect(x * tilesize, y * tilesize, tilesize, tilesize);
 
+		// Draw Walls
 		ctx.beginPath();
 		if (wall.left) {
 			ctx.moveTo(x * tilesize, y * tilesize);
@@ -155,3 +173,9 @@ const draw = () => {
 };
 
 window.onload = draw;
+window.addEventListener('keydown', e => {
+	if (e.key === "Enter") {
+		maze.reset();
+		draw();
+	}
+});
