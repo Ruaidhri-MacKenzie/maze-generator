@@ -1,9 +1,14 @@
-const maze = new Maze(32, 32);
+const maze = new Maze(8, 8);
+const options = {
+	drawShortestPath: true,
+	drawStartEnd: true,
+	drawDistances: true,
+};
 
 // Render
 const canvas = document.querySelector(".canvas");
 const ctx = canvas.getContext("2d");
-const tilesize = 16;
+const tilesize = 64;
 const width = maze.columns * tilesize;
 const height = maze.rows * tilesize;
 canvas.setAttribute("width", width);
@@ -27,8 +32,8 @@ const draw = () => {
 		const { x, y, wall } = node;
 
 		// Draw Node
-		if (x === maze.startX && y === maze.startY) ctx.fillStyle = colours.start;
-		else if (x === maze.endX && y === maze.endY) ctx.fillStyle = colours.end;
+		if (options.drawStartEnd && x === maze.startX && y === maze.startY) ctx.fillStyle = colours.start;
+		else if (options.drawStartEnd && x === maze.endX && y === maze.endY) ctx.fillStyle = colours.end;
 		else ctx.fillStyle = colours.background;
 		ctx.fillRect(x * tilesize, y * tilesize, tilesize, tilesize);
 
@@ -51,6 +56,25 @@ const draw = () => {
 			ctx.lineTo(x * tilesize + tilesize, y * tilesize + tilesize);
 		}
 		ctx.stroke();
+		
+		// Draw Path
+		if (options.drawShortestPath) {
+			ctx.fillStyle = colours.path;
+			if (maze.shortestPath.find(pathNode => pathNode.x === x && pathNode.y === y)) {
+				ctx.beginPath();
+				ctx.arc(x * tilesize + tilesize / 2, y * tilesize + tilesize / 2, tilesize / 3, 0, 2 * Math.PI);
+				ctx.fill();
+			}
+		}
+
+		// Draw Distance
+		if (options.drawDistances) {
+			ctx.fillStyle = colours.wall;
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.font = `${tilesize / 3}px Arial`;
+			ctx.fillText(node.distance, x * tilesize + tilesize / 2, y * tilesize + tilesize / 2);
+		}
 	});
 };
 
@@ -70,6 +94,7 @@ const drawTilemap = () => {
 		const y = node.y * 2;
 		if (x === maze.startX * 2 && y === maze.startY * 2) tilemap[y][x] = 1;
 		else if (x === maze.endX * 2 && y === maze.endY * 2) tilemap[y][x] = 2;
+		else if (maze.shortestPath.find(pathNode => pathNode.x === x && pathNode.y === y)) tilemap[y][x] = 3;
 		else tilemap[y][x] = 0;
 
 		if (!node.wall.right) tilemap[y][x + 1] = 0;
@@ -82,6 +107,7 @@ const drawTilemap = () => {
 			else if (tilemap[y][x] === 0) ctx.fillStyle = colours.background;
 			else if (tilemap[y][x] === 1) ctx.fillStyle = colours.start;
 			else if (tilemap[y][x] === 2) ctx.fillStyle = colours.end;
+			else if (tilemap[y][x] === 3) ctx.fillStyle = colours.path;
 
 			ctx.fillRect(x * (tilesize / 2), y * (tilesize / 2), tilesize / 2, tilesize / 2);
 		}

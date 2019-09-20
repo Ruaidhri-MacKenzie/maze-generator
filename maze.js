@@ -9,6 +9,7 @@ class Node {
 			up: true,
 			down: true,
 		};
+		this.distance = null;
 	}
 
 	reset() {
@@ -19,6 +20,7 @@ class Node {
 			up: true,
 			down: true,
 		};
+		this.distance = null;
 	}
 }
 
@@ -32,7 +34,7 @@ class Maze {
 		this.endX = endX;
 		this.endY = endY;
 		this.nodes = [];
-		this.path = [];
+		this.shortestPath = [];
 
 		for (let y = 0; y < rows; y++) {
 			for (let x = 0; x < columns; x++) {
@@ -40,23 +42,29 @@ class Maze {
 			}
 		}
 
+		// Generate Maze
 		this.checkNextNode(this.nodes[startY * columns + startX]);
+
+		// Find Shortest Path
+		this.checkNodeDistance(endX, endY, Infinity);
 	}
 
-	checkNextNode(node) {
+	checkNextNode(node, path = []) {
 		if (!node) throw new Error("Node not found.");
 
 		node.checked = true;
-		this.path.push(node);
+		path.push(node);
+		node.distance = path.length - 1;
 
 		// Randomly Select Next Neighbour
-		this.checkNeighbours(node);
+		this.checkNeighbours(node, path);
 
 		// No Unchecked Neighbours Left
-		this.checkNeighbours(this.path.pop());
+		this.checkNeighbours(path[path.length - 1], path);
+		path.pop();
 	}
 
-	checkNeighbours(node) {
+	checkNeighbours(node, path) {
 		const neighbours = [];
 		const { x, y } = node;
 
@@ -104,11 +112,33 @@ class Maze {
 			}
 
 			// Check Next Node
-			return this.checkNextNode(nextNode);
+			return this.checkNextNode(nextNode, path);
+		}
+	}
+
+	checkNodeDistance(x, y, currentDistance) {
+		const node = this.nodes[y * this.columns + x];
+		if (!node || node.distance >= currentDistance) return;
+		const { wall, distance } = node;
+		
+		this.shortestPath.unshift({x, y});
+		
+		if (x > 0 && !wall.left) {
+			this.checkNodeDistance(x - 1, y, distance);
+		}
+		if (x < this.columns - 1 && !wall.right) {
+			this.checkNodeDistance(x + 1, y, distance);
+		}
+		if (y > 0 && !wall.up) {
+			this.checkNodeDistance(x, y - 1, distance);
+		}
+		if (y < this.rows - 1 && !wall.down) {
+			this.checkNodeDistance(x, y + 1, distance);
 		}
 	}
 
 	reset() {
+		this.shortestPath = [];
 		this.nodes.forEach(node => node.reset());
 
 		do {
@@ -120,5 +150,6 @@ class Maze {
 		while (this.startX === this.endX && this.startY === this.endY)
 		
 		this.checkNextNode(this.nodes[this.startY * this.columns + this.startX]);
+		this.checkNodeDistance(this.endX, this.endY, Infinity);
 	}
 }
