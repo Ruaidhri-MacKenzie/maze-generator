@@ -1,128 +1,3 @@
-class Node {
-	constructor(x, y) {
-		this.x = x;
-		this.y = y;
-		this.checked = false;
-		this.wall = {
-			left: true,
-			right: true,
-			up: true,
-			down: true,
-		};
-	}
-
-	reset() {
-		this.checked = false;
-		this.wall = {
-			left: true,
-			right: true,
-			up: true,
-			down: true,
-		};
-	}
-}
-
-class Maze {
-	constructor(columns, rows, startX = 0, startY = 0, endX = columns - 1, endY = rows - 1) {
-		this.columns = columns;
-		this.rows = rows;
-		this.size = columns * rows;
-		this.startX = startX;
-		this.startY = startY;
-		this.endX = endX;
-		this.endY = endY;
-		this.nodes = [];
-		this.path = [];
-
-		for (let y = 0; y < rows; y++) {
-			for (let x = 0; x < columns; x++) {
-				this.nodes.push(new Node(x, y));
-			}
-		}
-
-		this.checkNextNode(this.nodes[startY * columns + startX]);
-	}
-
-	checkNextNode(node) {
-		if (!node) throw new Error("Node not found.");
-
-		node.checked = true;
-		this.path.push(node);
-
-		// Randomly Select Next Neighbour
-		this.checkNeighbours(node);
-
-		// No Unchecked Neighbours Left
-		this.checkNeighbours(this.path.pop());
-	}
-
-	checkNeighbours(node) {
-		const neighbours = [];
-		const { x, y } = node;
-
-		// Left Neighbour
-		if (x > 0) {
-			const neighbourNode = this.nodes[y * this.columns + (x - 1)];
-			if (!neighbourNode.checked) neighbours.push(neighbourNode);
-		}
-		// Right Neighbour
-		if (x < this.columns - 1) {
-			const neighbourNode = this.nodes[y * this.columns + (x + 1)];
-			if (!neighbourNode.checked) neighbours.push(neighbourNode);
-		}
-		// Up Neighbour
-		if (y > 0) {
-			const neighbourNode = this.nodes[(y - 1) * this.columns + x];
-			if (!neighbourNode.checked) neighbours.push(neighbourNode);
-		}
-		// Down Neighbour
-		if (y < this.rows - 1) {
-			const neighbourNode = this.nodes[(y + 1) * this.columns + x];
-			if (!neighbourNode.checked) neighbours.push(neighbourNode);
-		}
-		
-		if (neighbours.length > 0) {
-			let randomIndex = Math.floor(Math.random() * neighbours.length);
-			let nextNode = neighbours[randomIndex];
-
-			// Remove Walls
-			if (nextNode.x < node.x) {
-				node.wall.left = false;
-				nextNode.wall.right = false;
-			}
-			else if (nextNode.x > node.x) {
-				node.wall.right = false;
-				nextNode.wall.left = false;
-			}
-			else if (nextNode.y < node.y) {
-				node.wall.up = false;
-				nextNode.wall.down = false;
-			}
-			else if (nextNode.y > node.y) {
-				node.wall.down = false;
-				nextNode.wall.up = false;
-			}
-
-			// Check Next Node
-			return this.checkNextNode(nextNode);
-		}
-	}
-
-	reset() {
-		this.nodes.forEach(node => node.reset());
-
-		do {
-			this.startX = Math.floor(Math.random() * this.columns);
-			this.startY = Math.floor(Math.random() * this.rows);
-			this.endX = Math.floor(Math.random() * this.columns);
-			this.endY = Math.floor(Math.random() * this.rows);
-		}
-		while (this.startX === this.endX && this.startY === this.endY)
-		
-		this.checkNextNode(this.nodes[this.startY * this.columns + this.startX]);
-	}
-}
-
 const maze = new Maze(32, 32);
 
 // Render
@@ -133,9 +8,16 @@ const width = maze.columns * tilesize;
 const height = maze.rows * tilesize;
 canvas.setAttribute("width", width);
 canvas.setAttribute("height", height);
+const colours = {
+	background: '#fff',
+	wall: '#000',
+	start: '#00f',
+	end: '#f00',
+	path: '#ff0',
+};
 
 const draw = () => {
-	ctx.strokeStyle = '#000';
+	ctx.strokeStyle = colours.wall;
 	
 	// Clear Canvas
 	ctx.clearRect(0, 0, width, height);
@@ -145,9 +27,9 @@ const draw = () => {
 		const { x, y, wall } = node;
 
 		// Draw Node
-		if (x === maze.startX && y === maze.startY) ctx.fillStyle = '#00f';
-		else if (x === maze.endX && y === maze.endY) ctx.fillStyle = '#f00';
-		else ctx.fillStyle = '#fff';
+		if (x === maze.startX && y === maze.startY) ctx.fillStyle = colours.start;
+		else if (x === maze.endX && y === maze.endY) ctx.fillStyle = colours.end;
+		else ctx.fillStyle = colours.background;
 		ctx.fillRect(x * tilesize, y * tilesize, tilesize, tilesize);
 
 		// Draw Walls
@@ -170,6 +52,40 @@ const draw = () => {
 		}
 		ctx.stroke();
 	});
+};
+
+const drawTilemap = () => {
+	ctx.clearRect(0, 0, width, height);
+
+	const tilemap = [];
+	for (let y = 0; y < maze.rows * 2; y++) {
+		tilemap[y] = [];
+		for (let x = 0; x < maze.columns * 2; x++) {
+			tilemap[y][x] = -1;
+		}
+	}
+	
+	maze.nodes.forEach(node => {
+		const x = node.x * 2;
+		const y = node.y * 2;
+		if (x === maze.startX * 2 && y === maze.startY * 2) tilemap[y][x] = 1;
+		else if (x === maze.endX * 2 && y === maze.endY * 2) tilemap[y][x] = 2;
+		else tilemap[y][x] = 0;
+
+		if (!node.wall.right) tilemap[y][x + 1] = 0;
+		if (!node.wall.down) tilemap[y + 1][x] = 0;
+	});
+
+	for (let y = 0; y < maze.rows * 2; y++) {
+		for (let x = 0; x < maze.columns * 2; x++) {
+			if (tilemap[y][x] === -1) ctx.fillStyle = colours.wall;
+			else if (tilemap[y][x] === 0) ctx.fillStyle = colours.background;
+			else if (tilemap[y][x] === 1) ctx.fillStyle = colours.start;
+			else if (tilemap[y][x] === 2) ctx.fillStyle = colours.end;
+
+			ctx.fillRect(x * (tilesize / 2), y * (tilesize / 2), tilesize / 2, tilesize / 2);
+		}
+	}
 };
 
 window.onload = draw;
